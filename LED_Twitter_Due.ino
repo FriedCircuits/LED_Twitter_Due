@@ -20,7 +20,7 @@ Takes a twitter hashtag feed and displays it on a LED Matrix.
 //Ethernet Stuff
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xE4 };
 EthernetClient client;
-char TwitterHashtag[] = "jack"; //change this to your own twitter hashtag, or follow arduino ;-)
+char TwitterHashtag[] = "tindie"; //change this to your own twitter hashtag, or follow arduino ;-)
 char tweet[140];
 char serverName[] = "search.twitter.com";  // twitter URL
 
@@ -28,7 +28,7 @@ unsigned long delayTwitter = 60000; //Time in milliseconds to connect to Twitter
 unsigned long delayTime = millis();
 unsigned long displayLastTime = millis();
 
-const unsigned int tweetHistoryTime = 2000; //Time in hours 10000 being 1 hour Note: Doesn't account for midnight
+const unsigned int tweetHistoryTime = 20000; //Time in hours 10000 being 1 hour Note: Doesn't account for midnight
 
 int tweetCount = 0; //Keep track of numer of tweets received during last connection
 int displayCycleTime = 10000; //Time betweek LED messages refresh, recalculated each Twitter connection
@@ -184,7 +184,7 @@ byte lentbl_S[104] =
 
 LedControl lc=LedControl(6,5,3,devCount); 
 
-char msg[] = "No Msg...";
+char msg[140] = "No Msg...";
 int msgsize =  strlen(msg);
 char inString[144]="";
 int inCount=0;
@@ -300,7 +300,7 @@ void loop()
       curchar = msg[curcharix];
     }
     
-    //delay(scrollSpeed);
+    delay(scrollSpeed);
   }
   
    getTwitter();
