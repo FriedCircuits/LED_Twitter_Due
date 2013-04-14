@@ -21,6 +21,7 @@ Takes a twitter hashtag feed and displays it on a LED Matrix.
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xE4 };
 EthernetClient client;
 char TwitterHashtag[] = "tindie"; //change this to your own twitter hashtag, or follow arduino ;-)
+String hashTag = "#tindie"; //For removing from tweet
 char tweet[140];
 char serverName[] = "search.twitter.com";  // twitter URL
 
@@ -28,7 +29,7 @@ unsigned long delayTwitter = 60000; //Time in milliseconds to connect to Twitter
 unsigned long delayTime = millis();
 unsigned long displayLastTime = millis();
 
-const unsigned int tweetHistoryTime = 20000; //Time in hours 10000 being 1 hour Note: Doesn't account for midnight
+const unsigned int tweetHistoryTime = 10000; //Time in hours 10000 being 1 hour Note: Doesn't account for midnight
 
 int tweetCount = 0; //Keep track of numer of tweets received during last connection
 int displayCycleTime = 10000; //Time betweek LED messages refresh, recalculated each Twitter connection
@@ -226,7 +227,7 @@ void setup()
   // connect to Twitter:
   delay(3000);
   
-  
+  SerialUSB.println(hashTag);  
 }
 
 void loop()
@@ -431,16 +432,8 @@ void pCmd(char cmd, int value)
     
     break;
 
-    case '-':
-	//SerialUSB.println(freeRam());
-    break; 
- 
-    case 'f':
+   case 'f':
         scrollSpeed = value;
-    break;
-    
-    case 't':
-        getTemp();
     break;
     
     case 'b':
@@ -586,40 +579,6 @@ void clearDisplay()
   
 }
 
-/*
-int freeRam () {
-  extern int __heap_start, *__brkval;
-  int v;
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
-}
-*/
-void getTemp()
-{
-  int RawTemp = 0;
-  
-  for (int i = 0; i < NUMSAMPLES; i++)
-  {
-    RawTemp += analogRead(thermPin);
-  }
-  
-  RawTemp /= NUMSAMPLES;
-  
-  long Resistance;	
-  double Temp;
-
-
-  Resistance=((10240000/RawTemp) - 10000); 
-  Temp = log(Resistance); // Saving the Log(resistance) so not to calculate  it 4 times later
-  Temp = 1 / (0.001129148 + (0.000234125 * Temp) + (0.0000000876741 * Temp * Temp * Temp)); 
-  Temp = Temp - 273.15;  // Convert Kelvin to Celsius                      
-  //Temp = (Temp * -1);
-  Temp = (Temp * 9.0)/ 5.0 + 32.0; // Convert Celcius to Fahrenheit
-    //Temp = (Temp * 9.0)/ 5.0 + 32.0; // Convert Celcius to Fahrenheit
-
-   SerialUSB.println(Temp);
-}
-
-
 
 void getTwitter(){
   
@@ -629,8 +588,7 @@ void getTwitter(){
    unsigned long firstTime = 0;
    unsigned long currTime = 0;
    
-   tweetCount = 0;
-   
+  
    SerialUSB.println("connecting to server...");
    
    if (client.connect(serverName, 80)) {
@@ -652,7 +610,7 @@ void getTwitter(){
            
             finder.find("T");
             firstTime = finder.getValue(':');
-            SerialUSB.println(firstTime);
+            //SerialUSB.println(firstTime);
             firstLoop = false;
             
           }
@@ -660,7 +618,7 @@ void getTwitter(){
             
             finder.find("T");
             currTime = finder.getValue(':');
-            SerialUSB.println(currTime);   
+            //SerialUSB.println(currTime);   
             
             if (currTime < firstTime - tweetHistoryTime) break;  
             
@@ -668,11 +626,12 @@ void getTwitter(){
           }
                    
           
-          if((finder.getString("<title>","</title>",tweet,140)!=0))
-          SerialUSB.println(tweet);
-          tweetCount++; //Not needed anymore
-          tweetMsg.push(tweet); //Need to figure out once mem is full will it every free up
-
+          if((finder.getString("<title>","</title>",tweet,140)!=0)){
+            String tweetClean(tweet);
+            tweetClean.replace(hashTag, " * "); //Remove search hashtag before being displayed
+            SerialUSB.println(tweetClean);
+            tweetMsg.push(tweetClean); //Need to figure out once mem is full will it every free up
+          }
         }
         break;
       }
@@ -682,16 +641,15 @@ void getTwitter(){
     firstLoop = true;
   }
   
-  SerialUSB.println("delay...");
+  //SerialUSB.println("delay...");
 
    displayCycleTime = delayTwitter / tweetMsg.count(); //Calculation to spread display of tweets evenly over the time between connections
    if (displayCycleTime < minDisplayTime) displayCycleTime = minDisplayTime; //If there are too many tweets for messages to be display set display time to min display time.
-   SerialUSB.println(displayCycleTime);  
+   //SerialUSB.println(displayCycleTime);  
  
    delayTime = millis();
    firstBoot = false;
 
-   //SerialUSB.println(freeRam());
  }
  
  
