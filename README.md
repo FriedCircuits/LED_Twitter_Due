@@ -1,8 +1,13 @@
 LED-Twitter-Due
 ================
 
-In testing.
+Searches Twitter for hashtag and then pushes to a queue. 
 
+Depending on the number of Tweets calculates display time.
+
+During each internval pops from the queue and updates message array to display on a 8x8 LED Matrix.
+
+Hardware available on [https://www.tindie.com/stores/FriedCircuits/](https://www.tindie.com/stores/FriedCircuits/)
 
 
 License: All source code and designs are released under 
