@@ -17,6 +17,8 @@ For WiFly make sure you use this library:
 https://github.com/dubhunter/WiFly-Shield/tree/client-hardening
 You just need to add "#define PSTR(x)  x" at the top of WiFly.h
 
+If you don't use the external antenna modify line 426 in WiFlyDevie.cpp.
+
 
 
 Also the pins need to be jumpered:
