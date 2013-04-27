@@ -17,19 +17,15 @@ For WiFly make sure you use this library:
 https://github.com/dubhunter/WiFly-Shield/tree/client-hardening
 You just need to add "#define PSTR(x)  x" at the top of WiFly.h
 
-If you don't use the external antenna modify line 426 in WiFlyDevie.cpp.
+If you don't use the external antenna modify line 426 in WiFlyDevie.cpp
+
+(Note: SFE library was fixed so either library will work, only dubhunters needs to modify antenna setting)
 
 
 
 Also the pins need to be jumpered:
 https://forum.sparkfun.com/viewtopic.php?f=13&t=35187
 
-
-
-TODO:
-Combine both Sketches with option to select if you are using Ethernet or Wifly. 
- 
- 
 
 
 
