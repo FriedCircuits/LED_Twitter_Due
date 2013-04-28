@@ -681,28 +681,28 @@ void getTwitter(){
             String tweetClean(tweet);
             tweetClean.replace(hashTag, " * "); //Remove search hashtag before being displayed
             tweetClean.replace(hashTag2, " * "); //With capital
-            String tweetClean2;
-            for (int i = 0; i <= tweetClean.length(); i++){
-              int urlLoc = 0;
-              if((tweetClean[i] == 'h') & (tweetClean[i+1] == 't') & (tweetClean[i+2] == 't') & (tweetClean[i+3] == 'p')){
-                urlLoc = i;
-                SerialUSB.println("URL");
-                while((tweetClean[i] != '                                ') || (i <= tweetClean.length())){
-                   i++; 
-                   if (i >= tweetClean.length())break;
-                 }
-                tweetClean2[i] = ' '; //Add space after we removed URL
-                i++;
-              }
-              else {
-               tweetClean2[i]=tweetClean[i]; 
-              }
-              
-              
+            
+            int URL = tweetClean.indexOf("http");
+
+            if(URL > -1) {
+            
+                //SerialUSB.println(URL);
+            
+                int endURL = tweetClean.indexOf(' ', URL + 1);
+
+                //if -1 URL is at end of tweet otherwise it is in the middle
+                if (endURL = -1) {
+                  tweetClean.replace(tweetClean.substring(URL, tweetClean.length()), " ");
+                }
+                else {
+                  //SerialUSB.println(endURL);
+                  tweetClean.replace(tweetClean.substring(URL, endURL), " ");
+                } 
             }
-            SerialUSB.println(tweetClean2);
+             
+            SerialUSB.println(tweetClean);
             tweetCount++;            
-            tweetMsg.push(tweetClean2); //If there is too many tweets and min display is set uC will run out of memory eventually
+            tweetMsg.push(tweetClean); //If there is too many tweets and min display is set uC will run out of memory eventually
             }
           }
         }

@@ -651,6 +651,25 @@ void getTwitter(){
             String tweetClean(tweet);
             tweetClean.replace(hashTag, " * "); //Remove search hashtag before being displayed
             tweetClean.replace(hashTag2, " * "); //With capital
+            
+            int URL = tweetClean.indexOf("http");
+
+            if(URL > -1) {
+            
+                //SerialUSB.println(URL);
+            
+                int endURL = tweetClean.indexOf(' ', URL + 1);
+
+                //if -1 URL is at end of tweet otherwise it is in the middle
+                if (endURL = -1) {
+                  tweetClean.replace(tweetClean.substring(URL, tweetClean.length()), " ");
+                }
+                else {
+                  //SerialUSB.println(endURL);
+                  tweetClean.replace(tweetClean.substring(URL, endURL), " ");
+                } 
+            }
+            
             SerialUSB.println(tweetClean);
             tweetCount++; 
             tweetMsg.push(tweetClean); //If there is too many tweets and min display is set uC will run out of memory eventually
