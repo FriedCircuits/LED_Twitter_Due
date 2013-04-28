@@ -8,41 +8,51 @@ Updated: 03/19/2013
 by: William Garrido
 3x 8x8 LED Maxtrix Control
 Takes a twitter hashtag feed and displays it on a LED Matrix.
-Use this WiFly library - https://github.com/dubhunter/WiFly-Shield/tree/client-hardening
+Using this WiFly library - https://github.com/dubhunter/WiFly-Shield/tree/client-hardening
+Add
+#define PSTR(x)  x in WiFly.h 
+if you use that dubhunters library check line 426 in WiFlyDevice.h since it is set to external antenna
 Ethernet code is still here just commented out. 
 */
 
 
+
 #include <LedControl.h> //  need the library\
 #include <SPI.h>
+
 #include <WiFly.h>
 //#include <Ethernet.h>
 #include <TextFinder.h>
 #include <QueueList.h>
 
+const int ledPin = 13;
+
 // Wifi parameters
 char passphrase[] = "jennhart";
 char ssid[] = "dlink";
+
+int timeOut = 20; //Timeout in seconds when connecting to the internet
 
 //Ethernet Stuff
 //byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xE4 };
 WiFlyClient client("search.twitter.com", 80);
 //EthernetClient client;
-char TwitterHashtag[] = "tindie"; //change this to your own twitter hashtag, or follow arduino ;-)
-String hashTag = "#tindie"; //For removing from tweet
+char TwitterHashtag[] = "arduino"; //change this to your own twitter hashtag, or follow arduino ;-)
+String hashTag = "#arduino"; //For removing from tweet
+String hashTag2 = "#Arduino"; //With capital
 char tweet[140];
 //char serverName[] = "search.twitter.com";  // twitter URL
 
 
-unsigned long delayTwitter = 60000; //Time in milliseconds to connect to Twitter
+unsigned long delayTwitter = 120000; //Time in milliseconds to connect to Twitter
 unsigned long delayTime = millis();
 unsigned long displayLastTime = millis();
 
-const unsigned int tweetHistoryTime = 10000; //Time in hours 10000 being 1 hour Note: Doesn't account for midnight and twitter uses UTC
+const unsigned int tweetHistoryTime = 20000; //Time in hours 10000 being 1 hour Note: Doesn't account for going back a day, will show too many tweets
 
 int tweetCount = 0; //Keep track of numer of tweets received during last connection
 int displayCycleTime = 10000; //Time betweek LED messages refresh, recalculated each Twitter connection
-const int minDisplayTime = 5000; //Min time a tweet will be displayed on LED, if rearched, not all tweets may be displayed, timing could be adjusted.
+const int minDisplayTime = 6000; //Min time a tweet will be displayed on LED, if rearched, not all tweets may be displayed, timing could be adjusted.
 
 bool firstBoot = true; 
 
@@ -194,7 +204,7 @@ byte lentbl_S[104] =
 
 LedControl lc=LedControl(6,5,3,devCount); 
 
-char msg[140] = "No Msg...";
+char msg[140] = "Loading...";
 int msgsize =  strlen(msg);
 char inString[144]="";
 int inCount=0;
@@ -252,6 +262,8 @@ void setup()
   // WiFly.configure(WIFLY_BAUD, 38400);
     SerialUSB.println("connecting...");
     
+    pinMode(ledPin, OUTPUT);
+    digitalWrite(ledPin, LOW);
     
 }
 
@@ -597,10 +609,10 @@ bool endFlag = false;
 void clearDisplay()
 {
   
- for(int address=0;address<devCount;address++)
-          {
+   for(int address=0;address<devCount;address++)
+      {
          lc.clearDisplay(address);
-       } 
+      } 
   
 }
 
@@ -609,24 +621,29 @@ void getTwitter(){
   
   if ((millis() > (delayTime + delayTwitter)) || (firstBoot)){
     
+    int tweetCount = 0;
+    
+    digitalWrite(ledPin, HIGH);
+    
    bool firstLoop = true;
-   unsigned long firstTime = 0;
-   unsigned long currTime = 0;
+   long firstTime = 0;
+   long currTime = 0;
    
   
-   SerialUSB.println("connecting to server...");
+   //SerialUSB.println("connecting to server...");
    
    //if (client.connect(serverName, 80)) {
    if (client.connect()) {
-    TextFinder  finder( client,  30);
-    SerialUSB.println("making HTTP request...");
+    TextFinder  finder( client,  timeOut);
+    //SerialUSB.println("making HTTP request...");
     // make HTTP GET request to twitter:
     client.print("GET /search.atom?q=%23");
     client.print(TwitterHashtag);
+    client.print("&rpp=30"); //Make sure we get enough tweets returned since we are filtering out RT
     client.println("&count=1 HTTP/1.1");
     client.println("HOST: search.twitter.com");
     client.println();
-    SerialUSB.println("sended HTTP request...");
+    //SerialUSB.println("sended HTTP request...");
     while (client.connected()) {
       if (client.available()) {
         SerialUSB.println("looking for tweet...");
@@ -636,6 +653,7 @@ void getTwitter(){
            
             finder.find("T");
             firstTime = finder.getValue(':');
+            firstTime = firstTime + 1000000L; //corrects for midnight to allow comparsion of tweets without negitives
             //SerialUSB.println(firstTime);
             firstLoop = false;
             
@@ -644,19 +662,48 @@ void getTwitter(){
             
             finder.find("T");
             currTime = finder.getValue(':');
-            //SerialUSB.println(currTime);   
+            currTime = currTime + 1000000L;
+            //SerialUSB.print(currTime);   
+            //SerialUSB.print(" : ");
             
-            if (currTime < firstTime - tweetHistoryTime) break;  
+            //SerialUSB.println(firstTime - tweetHistoryTime);
+            
+            //Will stop when history time is reached or max possible tweets that can be displayed in the min display time per tweet
+            if ((delayTwitter / minDisplayTime) <= tweetCount) break; //stops loading tweets if we are at max tweets that can be displayed in the alotted display time, this stops uC from running out or memory over time
+            if (currTime < (firstTime - tweetHistoryTime)) break;  //With the above line this isn't really needed you can just adjust display time
             
           
           }
                    
           
           if((finder.getString("<title>","</title>",tweet,140)!=0)){
+            if ((tweet[0] == 'R') & (tweet[1] == 'T')){/*SerialUSB.println("RT")*/;}else{
             String tweetClean(tweet);
             tweetClean.replace(hashTag, " * "); //Remove search hashtag before being displayed
-            SerialUSB.println(tweetClean);
-            tweetMsg.push(tweetClean); //Need to figure out once mem is full will it every free up
+            tweetClean.replace(hashTag2, " * "); //With capital
+            String tweetClean2;
+            for (int i = 0; i <= tweetClean.length(); i++){
+              int urlLoc = 0;
+              if((tweetClean[i] == 'h') & (tweetClean[i+1] == 't') & (tweetClean[i+2] == 't') & (tweetClean[i+3] == 'p')){
+                urlLoc = i;
+                SerialUSB.println("URL");
+                while((tweetClean[i] != '                                ') || (i <= tweetClean.length())){
+                   i++; 
+                   if (i >= tweetClean.length())break;
+                 }
+                tweetClean2[i] = ' '; //Add space after we removed URL
+                i++;
+              }
+              else {
+               tweetClean2[i]=tweetClean[i]; 
+              }
+              
+              
+            }
+            SerialUSB.println(tweetClean2);
+            tweetCount++;            
+            tweetMsg.push(tweetClean2); //If there is too many tweets and min display is set uC will run out of memory eventually
+            }
           }
         }
         break;
@@ -667,14 +714,17 @@ void getTwitter(){
     firstLoop = true;
   }
   
-  //SerialUSB.println("delay...");
-
-   displayCycleTime = delayTwitter / tweetMsg.count(); //Calculation to spread display of tweets evenly over the time between connections
+   //SerialUSB.println("delay...");
+   SerialUSB.print(tweetMsg.count());
+   SerialUSB.print(" : ");
+   SerialUSB.println(tweetCount);
+   displayCycleTime = delayTwitter / tweetCount; //Calculation to spread display of tweets evenly over the time between connections
    if (displayCycleTime < minDisplayTime) displayCycleTime = minDisplayTime; //If there are too many tweets for messages to be display set display time to min display time.
-   //SerialUSB.println(displayCycleTime);  
+   SerialUSB.println(displayCycleTime);  
  
    delayTime = millis();
    firstBoot = false;
+   firstLoop = true;
 
  }
  
@@ -700,5 +750,6 @@ void getTwitter(){
     
  }
   
+  digitalWrite(ledPin, LOW);
 }
   
